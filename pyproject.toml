@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "understand-binary"
+version = "0.1.0"
+description = "Turn stripped binaries into interactive knowledge graphs"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+dependencies = [
+    "rzpipe>=0.4.0",
+    "openai>=1.0.0",
+    "rich>=13.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+]
+
+[project.scripts]
+understand-binary = "src.cli.main:main"
+
+[tool.setuptools.packages.find]
+include = ["src*"]

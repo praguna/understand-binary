@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+.understand-binary/
+node_modules/
+src/viewer/dist/
+.env
+*.egg
