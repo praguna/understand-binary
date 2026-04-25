@@ -65,11 +65,11 @@ export default function DetailPanel({ node, graph, onNavigate }: Props) {
           {node.layer}
         </span>
         <span className="detail-address">{node.address}</span>
-        {node.metadata.complexity && (
+        {node.metadata.complexity != null ? (
           <span className="detail-complexity">
             {String(node.metadata.complexity)}
           </span>
-        )}
+        ) : null}
       </div>
 
       {node.summary && (

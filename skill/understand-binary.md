@@ -34,6 +34,7 @@ understand-binary {path} --format json --verbose
 
 ### Options
 
-- `--llm-provider ollama` — use a local LLM instead of OpenAI
+- `--llm-provider ollama` — use a local LLM instead of Gemini
+- `--llm-provider openai` — use OpenAI instead of Gemini (requires OPENAI_API_KEY)
 - `--agents namer,layer` — run only specific agents
 - `--no-viewer` — skip launching the browser

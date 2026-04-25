@@ -63,24 +63,50 @@ understand-binary --help
 
 **Requirements:** Python 3.10+, Node.js 18+, [rizin](https://rizin.re/) installed and on PATH.
 
+### LLM setup
+
+The default provider is **Gemini**. Get a free API key at [aistudio.google.com](https://aistudio.google.com) and add it to a `.env` file in the project root:
+
+```
+GEMINI_API_KEY=your_key_here
+```
+
+The tool loads `.env` automatically. You can also export the key as an environment variable instead.
+
+To use a different provider, pass `--llm-provider`:
+
+| Provider | Env var | Default model |
+|---|---|---|
+| `gemini` (default) | `GEMINI_API_KEY` | `gemini-2.5-flash` |
+| `openai` | `OPENAI_API_KEY` | `gpt-4o` |
+| `ollama` | *(none)* | `llama3` |
+
 ## Usage
 
 ```bash
-# Basic — analyze and open viewer
+# Basic — analyze and open viewer in browser (port 3000)
 understand-binary ./mybinary
 
-# JSON output only (no browser)
+# JSON output only, no browser
 understand-binary ./mybinary --no-viewer
+
+# Custom output directory
+understand-binary ./mybinary --output ./my-output
 
 # Use a local LLM via Ollama
 understand-binary ./mybinary --llm-provider ollama --llm-model llama3
 
 # Run specific agents only
-understand-binary ./mybinary --agents namer,layer
+understand-binary ./mybinary --agents function-namer,summarizer
 
-# Export self-contained HTML report
-understand-binary ./mybinary --format html --output report.html
+# Custom viewer port
+understand-binary ./mybinary --port 8080
+
+# Verbose mode (shows per-agent progress)
+understand-binary ./mybinary --verbose
 ```
+
+The viewer is served as a local HTTP server — it copies the `knowledge-graph.json` into `src/viewer/dist/` and opens `http://localhost:3000` in your browser automatically. Press `Ctrl+C` to stop.
 
 ## Extending
 
@@ -131,7 +157,7 @@ class GhidraLoader(BinaryLoader):
 
 - **Python** — orchestrator, agents, plugin system, CLI
 - **rizin + rzpipe** — binary loading, disassembly, decompilation
-- **OpenAI-compatible API** — works with OpenAI, Anthropic, Ollama, or any compatible provider
+- **Gemini / OpenAI / Ollama** — default is Gemini 2.5 Flash via OpenAI-compatible shim; any provider works
 - **React + TypeScript** — viewer frontend
 - **Cytoscape.js** — force-directed graph visualization
 - **Fuse.js** — fuzzy search

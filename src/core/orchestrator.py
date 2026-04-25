@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
+import threading
 import webbrowser
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
+from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from typing import Callable
 
@@ -27,7 +30,7 @@ class Options:
     output: str = ".understand-binary"
     format: str = "json"
     agent_filter: list[str] = field(default_factory=list)
-    llm_provider: str = "openai"
+    llm_provider: str = "gemini"
     llm_model: str = ""
     no_viewer: bool = False
     port: int = 3000
@@ -146,9 +149,34 @@ class Orchestrator:
 
     def _launch_viewer(self, output_dir: Path, port: int) -> None:
         viewer_dir = Path(__file__).parent.parent / "viewer" / "dist"
-        if viewer_dir.is_dir():
-            console.print(f"\n[bold]Viewer ready at http://localhost:{port}[/bold]")
-            webbrowser.open(f"http://localhost:{port}")
-        else:
+        if not viewer_dir.is_dir():
             console.print("[yellow]Viewer not built. Run 'npm run build' in src/viewer/ first.[/yellow]")
             console.print(f"[dim]Graph JSON is at {output_dir / 'knowledge-graph.json'}[/dim]")
+            return
+
+        # Copy the knowledge graph into the dist folder so the viewer can fetch it
+        shutil.copy(output_dir / "knowledge-graph.json", viewer_dir / "knowledge-graph.json")
+
+        # Start a simple HTTP server in a background thread
+        os_dir = str(viewer_dir)
+
+        class _Handler(SimpleHTTPRequestHandler):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, directory=os_dir, **kwargs)
+
+            def log_message(self, *args):
+                pass  # suppress request logs
+
+        server = HTTPServer(("localhost", port), _Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        url = f"http://localhost:{port}"
+        console.print(f"\n[bold green]Viewer running at {url}[/bold green]  (Ctrl+C to stop)")
+        webbrowser.open(url)
+
+        try:
+            thread.join()
+        except KeyboardInterrupt:
+            server.shutdown()
+            console.print("\n[dim]Viewer stopped.[/dim]")

@@ -20,7 +20,7 @@ class RizinLoader(BinaryLoader):
 
     def load(self, path: str) -> BinaryContext:
         self._path = path
-        self._rz = rzpipe.open(path)
+        self._rz = rzpipe.open(path, flags=["-2"])  # -2 suppresses stderr noise
         self._rz.cmd("aaa")  # full analysis
 
         info = self._parse_json(self._rz.cmd("ij"))
@@ -97,18 +97,21 @@ class RizinLoader(BinaryLoader):
 
     def _build_call_graph(self, functions: list[FunctionInfo]) -> dict[str, list[str]]:
         call_graph: dict[str, list[str]] = {}
+        known_addrs = {fn.address for fn in functions}
+
         for fn in functions:
             self._rz.cmd(f"s {fn.address}")
-            refs_data = self._parse_json(self._rz.cmd("afcj"))
-            if isinstance(refs_data, list):
-                callees = []
-                for ref in refs_data:
-                    if isinstance(ref, dict):
-                        callees.append(hex(ref.get("addr", 0)))
-                    elif isinstance(ref, str):
-                        callees.append(ref)
-                if callees:
-                    call_graph[fn.address] = callees
+            instrs = self._parse_json(self._rz.cmd("pdrj"))
+            if not isinstance(instrs, list):
+                continue
+            callees = []
+            for instr in instrs:
+                if instr.get("type") == "call" and "jump" in instr:
+                    callee_addr = hex(instr["jump"])
+                    if callee_addr in known_addrs:
+                        callees.append(callee_addr)
+            if callees:
+                call_graph[fn.address] = list(set(callees))
         return call_graph
 
     def _parse_json(self, text: str) -> Any:

@@ -1,4 +1,4 @@
-"""OpenAI-compatible LLM client for Understand-Binary."""
+"""LLM client for Understand-Binary. Defaults to Gemini via OpenAI-compatible API."""
 
 from __future__ import annotations
 
@@ -8,15 +8,15 @@ from openai import OpenAI
 
 
 _PROVIDER_DEFAULTS: dict[str, dict[str, str]] = {
+    "gemini": {
+        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
+        "env_key": "GEMINI_API_KEY",
+        "model": "gemini-2.5-flash",
+    },
     "openai": {
         "base_url": "https://api.openai.com/v1",
         "env_key": "OPENAI_API_KEY",
         "model": "gpt-4o",
-    },
-    "anthropic": {
-        "base_url": "https://api.anthropic.com/v1",
-        "env_key": "ANTHROPIC_API_KEY",
-        "model": "claude-sonnet-4-20250514",
     },
     "ollama": {
         "base_url": "http://localhost:11434/v1",
@@ -28,13 +28,13 @@ _PROVIDER_DEFAULTS: dict[str, dict[str, str]] = {
 
 @dataclass
 class LLMClient:
-    provider: str = "openai"
+    provider: str = "gemini"
     model: str = ""
     api_key: str = ""
     base_url: str = ""
 
     def __post_init__(self) -> None:
-        defaults = _PROVIDER_DEFAULTS.get(self.provider, _PROVIDER_DEFAULTS["openai"])
+        defaults = _PROVIDER_DEFAULTS.get(self.provider, _PROVIDER_DEFAULTS["gemini"])
         if not self.model:
             self.model = defaults["model"]
         if not self.base_url:
