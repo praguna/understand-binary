@@ -22,15 +22,6 @@ export default function TourMode({
   const currentNodeId = graph.tour[step];
   const currentNode = currentNodeId ? graph.nodes[currentNodeId] : null;
 
-  // Find tour narrative from tour_next edges
-  const narrativeEdge = graph.edges.find(
-    (e) => e.source === currentNodeId && e.type === "tour_next"
-  );
-  const narrative =
-    (narrativeEdge?.metadata?.narrative as string) ||
-    currentNode?.summary ||
-    "";
-
   return (
     <div className={`tour-mode ${active ? "tour-active" : ""}`}>
       <button className="tour-toggle" onClick={onToggle}>
@@ -54,7 +45,6 @@ export default function TourMode({
             <span className="tour-name">
               {currentNode?.inferred_name || currentNode?.original_name || ""}
             </span>
-            <span className="tour-narrative">{narrative}</span>
           </div>
 
           <button

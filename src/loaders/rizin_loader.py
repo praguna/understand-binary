@@ -33,7 +33,8 @@ class RizinLoader(BinaryLoader):
         elif "MACH" in bin_format:
             bin_format = "Mach-O"
 
-        functions = self._load_functions()
+        import_addrs = self._load_import_addrs()
+        functions = self._load_functions(import_addrs)
         strings = self._load_strings()
         imports = self._load_imports()
         sections = self._load_sections()
@@ -61,18 +62,44 @@ class RizinLoader(BinaryLoader):
             result = self._rz.cmd("pdf")
         return result or ""
 
-    def _load_functions(self) -> list[FunctionInfo]:
+    def _load_import_addrs(self) -> set[str]:
+        """Return hex addresses of all import trampolines so we can exclude them."""
+        data = self._parse_json(self._rz.cmd("iij"))
+        if not isinstance(data, list):
+            return set()
+        return {hex(i["plt"]) for i in data if i.get("plt")} | \
+               {hex(i["vaddr"]) for i in data if i.get("vaddr")}
+
+    def _load_functions(self, import_addrs: set[str] | None = None) -> list[FunctionInfo]:
         data = self._parse_json(self._rz.cmd("aflj"))
         if not isinstance(data, list):
             return []
-        return [
-            FunctionInfo(
-                address=hex(f.get("offset", 0)),
-                name=f.get("name", f"fcn_{f.get('offset', 0):08x}"),
-                size=f.get("size", 0),
-            )
-            for f in data
-        ]
+        import_addrs = import_addrs or set()
+
+        all_fns = []
+        for f in data:
+            addr = hex(f.get("offset", 0))
+            name = f.get("name", f"fcn_{f.get('offset', 0):08x}")
+            if addr in import_addrs:
+                continue
+            if name.startswith(("sym.imp.", "imp.", "loc.imp.", "reloc.")):
+                continue
+            all_fns.append(FunctionInfo(address=addr, name=name, size=f.get("size", 0)))
+
+        # For Mach-O: if there are two distinct address clusters (e.g. 0x17xxx and
+        # 0x100003xxx), keep only the cluster with the most functions — the other is
+        # dyld/loader infrastructure that slipped through import filtering.
+        if len(all_fns) > 3:
+            offsets = [int(fn.address, 16) for fn in all_fns]
+            median = sorted(offsets)[len(offsets) // 2]
+            # Split into low vs high relative to the median
+            low = [fn for fn in all_fns if int(fn.address, 16) <= median * 4]
+            high = [fn for fn in all_fns if int(fn.address, 16) > median * 4]
+            if low and high and min(len(low), len(high)) <= 3:
+                # Clear minority cluster is likely stubs; keep the majority
+                all_fns = low if len(low) >= len(high) else high
+
+        return all_fns
 
     def _load_strings(self) -> list[str]:
         data = self._parse_json(self._rz.cmd("izj"))

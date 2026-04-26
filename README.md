@@ -17,6 +17,8 @@ Running agents...
 Viewer ready at http://localhost:3000
 ```
 
+![Understand-Binary viewer](docs/tour.png)
+
 ## How It Works
 
 Four agents analyze the binary through a plugin pipeline:
@@ -107,6 +109,17 @@ understand-binary ./mybinary --verbose
 ```
 
 The viewer is served as a local HTTP server — it copies the `knowledge-graph.json` into `src/viewer/dist/` and opens `http://localhost:3000` in your browser automatically. Press `Ctrl+C` to stop.
+
+### View an existing graph without re-running analysis
+
+If you've already run the analysis and just want to reopen the viewer:
+
+```bash
+cp .understand-binary/knowledge-graph.json src/viewer/dist/
+python3 -m http.server 3000 --directory src/viewer/dist
+```
+
+Then open http://localhost:3000 in your browser.
 
 ## Extending
 

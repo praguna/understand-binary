@@ -51,13 +51,32 @@ class TourBuilderAgent(Agent):
         return fragment
 
     def _find_entry(self, context: BinaryContext, graph: KnowledgeGraph) -> str:
-        """Find the entry point node id."""
-        for fn in context.functions:
-            if fn.name in ("main", "_main", "entry", "entry0", "_start", "WinMain"):
-                return f"fn_{fn.address}"
-        # Fallback: first function
-        if context.functions:
-            return f"fn_{context.functions[0].address}"
+        """Find the entry point: prefer known entry names, tiebreak by most reachable nodes."""
+        entry_names = {"main", "_main", "entry", "entry0", "_start", "WinMain"}
+
+        adj: dict[str, list[str]] = defaultdict(list)
+        for edge in graph.edges:
+            if edge.type == "calls":
+                adj[edge.source].append(edge.target)
+
+        def reachable(nid: str) -> int:
+            seen: set[str] = set()
+            stack = [nid]
+            while stack:
+                n = stack.pop()
+                if n in seen:
+                    continue
+                seen.add(n)
+                stack.extend(adj[n])
+            return len(seen)
+
+        candidates = [f"fn_{fn.address}" for fn in context.functions if fn.name in entry_names]
+        if candidates:
+            return max(candidates, key=reachable)
+
+        # Fallback: node that reaches the most other nodes
+        if graph.nodes:
+            return max(graph.nodes, key=reachable)
         return ""
 
     def _select_tour_nodes(self, entry_id: str, context: BinaryContext, graph: KnowledgeGraph) -> list[str]:

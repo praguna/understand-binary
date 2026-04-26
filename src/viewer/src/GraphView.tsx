@@ -55,7 +55,7 @@ export default function GraphView({
         label: n.inferred_name || n.original_name || n.address,
         layer: n.layer,
         color: LAYER_COLORS[n.layer] || LAYER_COLORS.unknown,
-        size: 20 + (((inDegree[n.id] || 0) / maxDeg) * 40),
+        size: 10 + (((inDegree[n.id] || 0) / maxDeg) * 18),
       },
     }));
 
